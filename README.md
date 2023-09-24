@@ -1,13 +1,19 @@
 # Тестовое задание "События"
 
 # Запуск:
+Создаем базу данных. В консоли MYSql создаем базу данных, и пользователя для неё.
+```mysql
+CREATE DATABASE DB_NAME;
+CREATE USER 'DB_USER'@'DB_HOST' IDENTIFIED BY 'DB_PASSWORD';
+GRANT ALL PRIVILEGES ON DB_NAME.* TO 'DB_USER'@'DB_HOST';
+```
 Создаем виртуальное окружение
 ```
 python -m venv venv
 ```
 Активируем виртуальное окружение
 ```
-"source venv/bin/activate" Linux или ". .\venv\Scripts\activate" для Windows
+"source venv/bin/activate" Linux или "venv\Scripts\activate" для Windows
 ```
 Устанавливаем зависимости
 ```
@@ -21,6 +27,10 @@ DB_NAME=имя БД
 DB_PORT=порт БД
 DB_USER=пользователь БД
 DB_PASSWORD=пароль пользователя БД
+```
+Выполняем миграции
+```
+python manage.py migrate
 ```
 Запускаем проект
 ```
