@@ -1,0 +1,25 @@
+{% extends 'events_site/layout.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+Регистрация
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+	<h1 class="text-center">Вход</h1>
+    <div class="row justify-content-center">
+        <div class="col-10 col-md-6">
+            <form method="POST">
+                {% csrf_token %}
+                {{ form|crispy }}
+                <div class="d-flex flex-column align-items-center login-btns">
+                    <button class="btn btn-primary my-1" type="submit">Зарегистрироваться</button>
+                    <span class="mt-5">Уже есть аккаунт?</span>
+                    <a class="btn btn-secondary my-1" href="{% url 'login' %}">Войти</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,160 @@
+{% extends 'events_site/layout.html' %}
+
+{% block title %}
+Главная
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+	<h1 class="text-center">События</h1>
+    <div class="row">
+        <div class="col-2">
+            <div class="list-group" id="events-links" role="tablist">
+                <h4>Мои события</h4>
+                <div id="links-my">
+                </div>
+                <h4>Все события</h4>
+                <div id="links-all">
+                </div>
+            </div>
+        </div>
+        <div class="col-10">
+            <div class="tab-content" id="event-contents">
+
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="userInfoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h1 id="userFullName"></h1>
+                <h2>Дата рождения: <span id="userBirthDate"></span></h2>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script>
+        $(function() {
+            function reload(){
+                $("#links-my").find('p').remove()
+                $("#links-all").find('p').remove()
+                $.ajax({
+                    url: {% url 'ajaxEvents' %},
+                    method: 'GET',
+                    success: function (data){
+                        let eventIds = $.map(data.events, function(event) {
+                            return event.id;
+                        });
+                        $.each($("[id^='link-event-']"), function (){
+                            let id = $(this).data('id')
+                            if ($.inArray(parseInt(id), eventIds) === -1){
+                                $(this).remove()
+                                $(document).find('#event-content-'+id).remove()
+                            }
+                        })
+
+                        let user = {{ request.user.id }}
+
+                        $.each(data.events, function (){
+                            let participantsList = ''
+                            let participantsIds = []
+
+                            $.each(this.participants, function() {
+                                participantsList += '<li><button type="button" class="btn btn-link user-link" data-id="'+this.id+'" data-bs-toggle="modal" data-bs-target="#userInfoModal">' + this.name + '</button></li>';
+                                participantsIds.push(this.id)
+                            })
+                            if ($('[data-id="'+this.id+'"]').length === 0){
+                                let content = $('<div class="tab-pane fade" data-id="'+this.id+'" id="event-content-'+this.id+'" role="tabpanel" aria-labelledby="link-event-'+this.id+'"><h1>'+this.title+'</h1><p class="event-text">'+this.text+'</p><p class="event-date">Дата: '+moment(this.date).format("DD-MM-YYYY HH:mm:ss")+'</p><h3>Участники</h3><ul>'+participantsList+'</ul></div>')
+                                content.appendTo($("#event-contents"))
+
+                                var link = $('<a class="list-group-item list-group-item-action" data-id="'+this.id+'" id="link-event-'+this.id+'" data-bs-toggle="list" href="#event-content-'+this.id+'" role="tab" aria-controls="event-content-'+this.id+'">'+this.title+'</a>')
+                                if ( user == this.creator ){
+                                    link.clone().appendTo($("#links-my"));
+
+                                }
+                                else {
+                                    link.appendTo($("#links-all"));
+                                }
+
+                                if ($.inArray(user, participantsIds) !== -1){
+                                    $('#event-content-'+this.id).append('<button class="btn btn-primary disjoin-btn" data-id="'+this.id+'">Отказаться от участия</button>')
+                                }
+                                else {
+                                    $('#event-content-'+this.id).append('<button class="btn btn-primary join-btn" data-id="'+this.id+'" >Принять участие</button>')
+                                }
+                            }
+                            else {
+                                let participantsList = ''
+                                $.each(this.participants, function() {
+                                    participantsList += '<li><button type="button" class="btn btn-link user-link" data-id="'+this.id+'" data-bs-toggle="modal" data-bs-target="#userInfoModal">' + this.name + '</button></li>';
+                                })
+                                let content = $('#event-content-'+this.id)
+                                content.find('h1').text(this.title)
+                                content.find('.event-text').text(this.text)
+                                content.find('.event-date').text(this.date)
+                                content.find('ul').find('li').remove()
+                                content.find('ul').append(participantsList)
+
+                                if ($.inArray(user, participantsIds) !== -1){
+                                    $('#event-content-'+this.id).find('.join-btn').text('Отказаться от участия').addClass('disjoin-btn').removeClass('join-btn')
+                                }
+                                else {
+                                    $('#event-content-'+this.id).find('.disjoin-btn').text('Принять участие').addClass('join-btn').removeClass('disjoin-btn')
+                                }
+                            }
+                        })
+                        if ($('#links-my').find('a').length == 0){
+                            $("#links-my").append('<p>У вас еще нет событий</p>')
+                        }
+                        if ($('#links-all').find('a').length == 0){
+                            $("#links-all").children().remove()
+                            $("#links-all").append('<p>Других событий еще нет</p>')
+                        }
+                    }
+                });
+            }
+            reload();
+            $('body').on('click', '.user-link', function (){
+                $.ajax({
+                    url: {% url 'ajaxUser' %},
+                    data: {id: $(this).data('id')},
+                    method: 'GET',
+                    success: function (data){
+                        $('#userFullName').text(data.user.first_name+' '+data.user.last_name)
+                        $('#userBirthDate').text(data.user.birthdate)
+                    }
+                })
+            })
+            $('body').on('click', '.join-btn', function (){
+                $.ajax({
+                    url: {% url 'joinEvent' %},
+                    data: {event: $(this).data('id')},
+                    method: 'GET',
+                    success: function (data){
+                        reload()
+                    }
+                })
+            })
+            $('body').on('click', '.disjoin-btn', function (){
+                $.ajax({
+                    url: {% url 'disjoinEvent' %},
+                    data: {event: $(this).data('id')},
+                    method: 'GET',
+                    success: function (data){
+                        reload()
+                    }
+                })
+            })
+            setInterval(reload, 30000)
+        });
+    </script>
+{% endblock %}
